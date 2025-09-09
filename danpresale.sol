@@ -2,178 +2,257 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
- * @title PreSale
- * @dev This contract manages a token presale on the Polygon network.
- * It allows users to purchase a specified ERC20 token using MATIC.
- * The contract owner has full control over the presale status, pricing,
- * and fund management.
- *
- * It is highly recommended to test this contract on a testnet (like Polygon Mumbai)
- * before deploying to the mainnet.
+ * @title TokenPresale
+ * @dev A smart contract for conducting a token presale on the Polygon network using MATIC.
+ * The contract owner can manage the presale, including starting/stopping it, updating the price,
+ * and withdrawing funds and unsold tokens.
  */
-contract PreSale is Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
+contract TokenPresale is Ownable, ReentrancyGuard {
+    // The ERC20 token being sold in the presale
+    IERC20 public myToken;
 
-    // --- State Variables ---
+    // The price of one unit of the token for each tier, in a fixed-point representation
+    mapping(uint256 => uint256) public tierPrices;
+    
+    // The total tokens to be sold in each tier
+    mapping(uint256 => uint256) public tierTokenLimits;
+    
+    // The current active presale tier
+    uint256 public currentTier;
 
-    // The address of the token being sold in the presale.
-    // User's token from the request: 0x46fc3e44a9dbbbb6b9abcd9c55b7f91037f16cffd
-    IERC20Metadata public immutable token;
+    // Total number of tokens sold during the presale
+    uint256 public totalTokensSold;
 
-    // The price of the token, represented as the number of tokens
-    // a user receives for 1 MATIC.
-    uint256 public tokensPerMatic;
-
-    // A flag to indicate whether the presale is currently active.
-    bool public preSaleActive;
-
-    // Total amount of MATIC raised during the presale.
+    // Total MATIC raised from the presale
     uint256 public totalMaticRaised;
 
-    // A mapping to track the amount of tokens sold to each address.
-    mapping(address => uint256) public tokensSoldTo;
+    // Boolean to control the state of the presale (active or not)
+    bool public presaleActive;
 
-    // Minimum and maximum MATIC amount per single buy transaction.
+    // Address of the token to be sold
+    address public immutable tokenAddress;
+    
+    // Minimum and maximum amount of MATIC a user can spend per purchase
     uint256 public minMaticBuy;
     uint256 public maxMaticBuy;
 
-    // --- Events ---
+    // Variables for the two-step tier update process
+    mapping(uint256 => uint256) private _proposedTierPrices;
+    mapping(uint256 => uint256) private _proposedTierTokenLimits;
+    uint256 public proposedTiersTimestamp;
 
+    // A time delay of 24 hours for the tier update to prevent front-running
+    uint256 public constant TIER_UPDATE_DELAY = 24 hours;
+
+    // Events to log important actions
     event PresaleStarted();
-    event PresaleEnded();
-    event TokenPriceUpdated(uint256 newPrice);
-    event TokensPurchased(address indexed buyer, uint256 maticAmount, uint256 tokenAmount);
-    event MaticWithdrawn(address indexed to, uint256 amount);
-    event UnsoldTokensWithdrawn(uint256 amount);
+    event PresaleStopped();
+    event TiersProposed();
+    event TiersUpdated();
     event BuyLimitsUpdated(uint256 newMin, uint256 newMax);
+    event TokensPurchased(address indexed buyer, uint256 maticAmount, uint256 tokenAmount);
+    event TokensDeposited(address indexed owner, uint256 amount);
+    event RaisedMaticWithdrawn(address indexed owner, uint256 amount);
+    event RemainingTokensWithdrawn(address indexed owner, uint256 amount);
 
     /**
-     * @dev The constructor initializes the contract with the token address,
-     * an initial price, and buy limits.
-     * @param _tokenAddress The address of the ERC20 token to be sold.
-     * @param _tokensPerMatic The initial price (tokens per 1 MATIC).
-     * @param _minMaticBuy The minimum amount of MATIC for a purchase.
-     * @param _maxMaticBuy The maximum amount of MATIC for a purchase.
+     * @dev The constructor initializes the contract with the address of the token to be sold.
+     * @param _tokenAddress The address of the ERC20 token.
      */
-    constructor(
-        address _tokenAddress,
-        uint256 _tokensPerMatic,
-        uint256 _minMaticBuy,
-        uint256 _maxMaticBuy
-    ) Ownable(msg.sender) {
-        token = IERC20Metadata(_tokenAddress);
-        tokensPerMatic = _tokensPerMatic;
-        minMaticBuy = _minMaticBuy;
-        maxMaticBuy = _maxMaticBuy;
-        preSaleActive = false;
+    constructor(address _tokenAddress) Ownable(msg.sender) {
+        tokenAddress = _tokenAddress;
+        myToken = IERC20(tokenAddress);
+
+        // Set initial purchase limits.
+        minMaticBuy = 1e18; // 1 MATIC
+        maxMaticBuy = 100e18; // 100 MATIC
+        presaleActive = false;
+        currentTier = 1;
     }
 
-    // --- Public Functions ---
+    // --- Owner-specific functions ---
 
     /**
-     * @dev Allows users to purchase tokens using MATIC.
-     * The `payable` modifier makes this function able to receive MATIC.
-     * The `nonReentrant` modifier prevents reentrancy attacks.
-     * Note: This function assumes the incoming MATIC has 18 decimals.
+     * @dev Allows the owner to propose a new set of prices and token limits for each tier.
+     * The changes will not take effect until the `commitTiers` function is called after a delay.
+     * @param _proposedPrices An array of prices for each tier.
+     * @param _proposedLimits An array of token limits for each tier.
      */
-    function buyTokens() external payable nonReentrant {
-        // Ensure the presale is active
-        require(preSaleActive, "Presale is not active");
+    function proposeTiers(uint256[] calldata _proposedPrices, uint256[] calldata _proposedLimits) external onlyOwner {
+        require(_proposedPrices.length == _proposedLimits.length, "Arrays must have the same length");
+        require(_proposedPrices.length > 0, "Tiers cannot be empty");
+        
+        for (uint i = 0; i < _proposedPrices.length; i++) {
+            _proposedTierPrices[i + 1] = _proposedPrices[i];
+            _proposedTierTokenLimits[i + 1] = _proposedLimits[i];
+        }
 
-        // Enforce buy limits
-        require(msg.value >= minMaticBuy, "MATIC amount is below the minimum buy limit");
-        require(msg.value <= maxMaticBuy, "MATIC amount exceeds the maximum buy limit");
-
-        // Calculate the amount of tokens to send to the buyer, handling token decimals.
-        // We use IERC20Metadata to get the token's decimals.
-        uint256 tokenAmount = (msg.value * tokensPerMatic * (10 ** token.decimals())) / (10 ** 18);
-
-        // Ensure the contract has enough tokens to fulfill the order.
-        require(IERC20(address(token)).balanceOf(address(this)) >= tokenAmount, "Not enough tokens available for sale");
-
-        // Record the MATIC raised and tokens sold
-        totalMaticRaised += msg.value;
-        tokensSoldTo[msg.sender] += tokenAmount;
-
-        // Transfer the tokens to the buyer.
-        IERC20(address(token)).safeTransfer(msg.sender, tokenAmount);
-
-        // Emit an event to log the purchase.
-        emit TokensPurchased(msg.sender, msg.value, tokenAmount);
+        proposedTiersTimestamp = block.timestamp;
+        
+        emit TiersProposed();
     }
 
-    // --- Owner-only Functions ---
+    /**
+     * @dev Allows the owner to commit the proposed tiers after the required time delay.
+     * The new tiers will then become active.
+     */
+    function commitTiers() external onlyOwner {
+        require(proposedTiersTimestamp + TIER_UPDATE_DELAY <= block.timestamp, "Tier update is not ready yet");
+        
+        uint256 i = 1;
+        while (_proposedTierPrices[i] > 0) {
+            tierPrices[i] = _proposedTierPrices[i];
+            tierTokenLimits[i] = _proposedTierTokenLimits[i];
+            i++;
+        }
+        
+        // Reset proposed tiers
+        for (uint256 j = 1; j < i; j++) {
+            _proposedTierPrices[j] = 0;
+            _proposedTierTokenLimits[j] = 0;
+        }
+
+        emit TiersUpdated();
+    }
 
     /**
      * @dev Allows the owner to start the presale.
-     * Only callable if the presale is not already active.
+     * Requires the presale to not be active.
      */
     function startPresale() external onlyOwner {
-        require(!preSaleActive, "Presale is already active");
-        preSaleActive = true;
+        require(!presaleActive, "Presale is already active");
+        require(tierPrices[1] > 0, "Tiers must be configured and committed before starting the presale");
+        presaleActive = true;
         emit PresaleStarted();
     }
 
     /**
-     * @dev Allows the owner to stop the presale.
-     * Only callable if the presale is active.
+     * @dev Allows the owner to stop the presale manually.
+     * Requires the presale to be active.
      */
     function stopPresale() external onlyOwner {
-        require(preSaleActive, "Presale is not active");
-        preSaleActive = false;
-        emit PresaleEnded();
+        require(presaleActive, "Presale is not active");
+        presaleActive = false;
+        emit PresaleStopped();
+    }
+    
+    /**
+     * @dev Allows the owner to update the minimum and maximum MATIC a user can spend.
+     * @param _minMaticBuy The new minimum MATIC buy amount.
+     * @param _maxMaticBuy The new maximum MATIC buy amount.
+     */
+    function setMinMaxMaticBuy(uint256 _minMaticBuy, uint256 _maxMaticBuy) external onlyOwner {
+        require(_minMaticBuy > 0, "Minimum buy must be greater than zero");
+        require(_maxMaticBuy >= _minMaticBuy, "Maximum buy must be greater than or equal to minimum buy");
+        minMaticBuy = _minMaticBuy;
+        maxMaticBuy = _maxMaticBuy;
+        emit BuyLimitsUpdated(_minMaticBuy, _maxMaticBuy);
     }
 
     /**
-     * @dev Allows the owner to update the token price.
-     * @param _newPrice The new price, representing tokens per 1 MATIC.
+     * @dev Allows the owner to deposit tokens into the presale contract.
+     * The owner must have already approved this contract to spend their tokens.
+     * @param amount The number of tokens to deposit.
      */
-    function setTokenPrice(uint256 _newPrice) external onlyOwner {
-        tokensPerMatic = _newPrice;
-        emit TokenPriceUpdated(_newPrice);
+    function depositTokensForSale(uint256 amount) external onlyOwner {
+        // Transfer the tokens from the owner's address to this contract
+        require(myToken.transferFrom(msg.sender, address(this), amount), "Token deposit failed");
+        emit TokensDeposited(msg.sender, amount);
     }
 
     /**
-     * @dev Allows the owner to set the minimum and maximum buy limits.
-     * @param _newMin The new minimum MATIC buy limit.
-     * @param _newMax The new maximum MATIC buy limit.
+     * @dev Allows the owner to withdraw the MATIC raised from the presale.
+     * Requires the presale to be stopped.
      */
-    function setBuyLimits(uint256 _newMin, uint256 _newMax) external onlyOwner {
-        require(_newMin <= _newMax, "Min buy must be less than or equal to max buy");
-        minMaticBuy = _newMin;
-        maxMaticBuy = _newMax;
-        emit BuyLimitsUpdated(_newMin, _newMax);
-    }
-
-    /**
-     * @dev Allows the owner to withdraw the collected MATIC.
-     * This function transfers the entire MATIC balance of the contract to the owner.
-     */
-    function withdrawFunds() external onlyOwner {
+    function withdrawRaisedMatic() external onlyOwner {
+        require(!presaleActive, "Presale must be stopped to withdraw funds");
         uint256 balance = address(this).balance;
         require(balance > 0, "No MATIC to withdraw");
 
-        // Use a low-level call to handle the MATIC transfer safely.
-        (bool sent,) = payable(owner()).call{value: balance}("");
-        require(sent, "Failed to withdraw MATIC");
-        emit MaticWithdrawn(owner(), balance);
+        // Transfer MATIC to the owner's address
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Failed to withdraw MATIC");
+
+        emit RaisedMaticWithdrawn(owner(), balance);
     }
 
     /**
-     * @dev Allows the owner to withdraw any unsold tokens from the contract.
-     * This can be used after the presale has ended.
+     * @dev Allows the owner to withdraw any remaining unsold tokens.
+     * This can be done at any time.
      */
-    function withdrawUnsoldTokens() external onlyOwner {
-        uint256 tokenBalance = IERC20(address(token)).balanceOf(address(this));
-        require(tokenBalance > 0, "No tokens to withdraw");
+    function withdrawRemainingTokens() external onlyOwner {
+        uint256 remainingTokens = myToken.balanceOf(address(this));
+        require(remainingTokens > 0, "No remaining tokens to withdraw");
 
-        IERC20(address(token)).safeTransfer(owner(), tokenBalance);
-        emit UnsoldTokensWithdrawn(tokenBalance);
+        // Transfer the remaining tokens back to the owner's address
+        require(myToken.transfer(owner(), remainingTokens), "Failed to withdraw remaining tokens");
+        emit RemainingTokensWithdrawn(owner(), remainingTokens);
+    }
+
+    // --- Public/User functions ---
+
+    /**
+     * @dev Allows a user to buy tokens with MATIC.
+     * This function is payable and can receive MATIC.
+     */
+    function buyTokens() public payable nonReentrant {
+        require(presaleActive, "Presale is not active");
+        require(tierPrices[currentTier] > 0, "Presale is complete, no more tiers available");
+        require(msg.value >= minMaticBuy, "Amount must be greater than or equal to minimum purchase");
+        require(msg.value <= maxMaticBuy, "Amount must be less than or equal to maximum purchase");
+
+        // Calculate the number of tokens to sell based on the MATIC sent and current tier price.
+        uint256 tokensToBuy = (msg.value * 1e18) / tierPrices[currentTier];
+        uint256 tokensSoldInCurrentTier = totalTokensSold - tierTokenLimits[currentTier-1];
+        require(tokensToBuy + tokensSoldInCurrentTier <= tierTokenLimits[currentTier], "Purchase exceeds current tier's limit");
+
+        require(myToken.balanceOf(address(this)) >= tokensToBuy, "Not enough tokens in contract");
+
+        // Transfer tokens to the buyer
+        require(myToken.transfer(msg.sender, tokensToBuy), "Token transfer failed");
+
+        // Update the total sold and MATIC raised counts
+        totalTokensSold += tokensToBuy;
+        totalMaticRaised += msg.value;
+
+        // Check if the current tier is sold out and advance to the next tier
+        if (totalTokensSold >= tierTokenLimits[currentTier]) {
+            currentTier++;
+        }
+
+        // Emit the event to log the purchase
+        emit TokensPurchased(msg.sender, msg.value, tokensToBuy);
+    }
+
+    /**
+     * @dev Returns the total amount of MATIC raised during the presale.
+     */
+    function maticRaised() external view returns (uint256) {
+        return totalMaticRaised;
+    }
+
+    /**
+     * @dev Returns the number of unsold tokens remaining in the contract.
+     */
+    function tokensRemaining() external view returns (uint256) {
+        return myToken.balanceOf(address(this)) - totalTokensSold;
+    }
+
+    /**
+     * @dev Returns the current number of tokens per 1 MATIC.
+     */
+    function getCurrentPrice() external view returns (uint256) {
+        return (1e36) / tierPrices[currentTier];
+    }
+
+    /**
+     * @dev Fallback function that reverts, forcing users to use the `buyTokens` function.
+     */
+    receive() external payable {
+        revert("Use buyTokens function");
     }
 }
