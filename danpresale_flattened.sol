@@ -81,352 +81,6 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
-// File: @openzeppelin/contracts/interfaces/IERC20.sol
-
-
-// OpenZeppelin Contracts (last updated v5.4.0) (interfaces/IERC20.sol)
-
-pragma solidity >=0.4.16;
-
-
-// File: @openzeppelin/contracts/utils/introspection/IERC165.sol
-
-
-// OpenZeppelin Contracts (last updated v5.4.0) (utils/introspection/IERC165.sol)
-
-pragma solidity >=0.4.16;
-
-/**
- * @dev Interface of the ERC-165 standard, as defined in the
- * https://eips.ethereum.org/EIPS/eip-165[ERC].
- *
- * Implementers can declare support of contract interfaces, which can then be
- * queried by others ({ERC165Checker}).
- *
- * For an implementation, see {ERC165}.
- */
-interface IERC165 {
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]
-     * to learn more about how these ids are created.
-     *
-     * This function call must use less than 30 000 gas.
-     */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
-}
-
-// File: @openzeppelin/contracts/interfaces/IERC165.sol
-
-
-// OpenZeppelin Contracts (last updated v5.4.0) (interfaces/IERC165.sol)
-
-pragma solidity >=0.4.16;
-
-
-// File: @openzeppelin/contracts/interfaces/IERC1363.sol
-
-
-// OpenZeppelin Contracts (last updated v5.4.0) (interfaces/IERC1363.sol)
-
-pragma solidity >=0.6.2;
-
-
-
-/**
- * @title IERC1363
- * @dev Interface of the ERC-1363 standard as defined in the https://eips.ethereum.org/EIPS/eip-1363[ERC-1363].
- *
- * Defines an extension interface for ERC-20 tokens that supports executing code on a recipient contract
- * after `transfer` or `transferFrom`, or code on a spender contract after `approve`, in a single transaction.
- */
-interface IERC1363 is IERC20, IERC165 {
-    /*
-     * Note: the ERC-165 identifier for this interface is 0xb0202a11.
-     * 0xb0202a11 ===
-     *   bytes4(keccak256('transferAndCall(address,uint256)')) ^
-     *   bytes4(keccak256('transferAndCall(address,uint256,bytes)')) ^
-     *   bytes4(keccak256('transferFromAndCall(address,address,uint256)')) ^
-     *   bytes4(keccak256('transferFromAndCall(address,address,uint256,bytes)')) ^
-     *   bytes4(keccak256('approveAndCall(address,uint256)')) ^
-     *   bytes4(keccak256('approveAndCall(address,uint256,bytes)'))
-     */
-
-    /**
-     * @dev Moves a `value` amount of tokens from the caller's account to `to`
-     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
-     * @param to The address which you want to transfer to.
-     * @param value The amount of tokens to be transferred.
-     * @return A boolean value indicating whether the operation succeeded unless throwing.
-     */
-    function transferAndCall(address to, uint256 value) external returns (bool);
-
-    /**
-     * @dev Moves a `value` amount of tokens from the caller's account to `to`
-     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
-     * @param to The address which you want to transfer to.
-     * @param value The amount of tokens to be transferred.
-     * @param data Additional data with no specified format, sent in call to `to`.
-     * @return A boolean value indicating whether the operation succeeded unless throwing.
-     */
-    function transferAndCall(address to, uint256 value, bytes calldata data) external returns (bool);
-
-    /**
-     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism
-     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
-     * @param from The address which you want to send tokens from.
-     * @param to The address which you want to transfer to.
-     * @param value The amount of tokens to be transferred.
-     * @return A boolean value indicating whether the operation succeeded unless throwing.
-     */
-    function transferFromAndCall(address from, address to, uint256 value) external returns (bool);
-
-    /**
-     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism
-     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.
-     * @param from The address which you want to send tokens from.
-     * @param to The address which you want to transfer to.
-     * @param value The amount of tokens to be transferred.
-     * @param data Additional data with no specified format, sent in call to `to`.
-     * @return A boolean value indicating whether the operation succeeded unless throwing.
-     */
-    function transferFromAndCall(address from, address to, uint256 value, bytes calldata data) external returns (bool);
-
-    /**
-     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
-     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.
-     * @param spender The address which will spend the funds.
-     * @param value The amount of tokens to be spent.
-     * @return A boolean value indicating whether the operation succeeded unless throwing.
-     */
-    function approveAndCall(address spender, uint256 value) external returns (bool);
-
-    /**
-     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
-     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.
-     * @param spender The address which will spend the funds.
-     * @param value The amount of tokens to be spent.
-     * @param data Additional data with no specified format, sent in call to `spender`.
-     * @return A boolean value indicating whether the operation succeeded unless throwing.
-     */
-    function approveAndCall(address spender, uint256 value, bytes calldata data) external returns (bool);
-}
-
-// File: @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
-
-
-// OpenZeppelin Contracts (last updated v5.3.0) (token/ERC20/utils/SafeERC20.sol)
-
-pragma solidity ^0.8.20;
-
-
-
-/**
- * @title SafeERC20
- * @dev Wrappers around ERC-20 operations that throw on failure (when the token
- * contract returns false). Tokens that return no value (and instead revert or
- * throw on failure) are also supported, non-reverting calls are assumed to be
- * successful.
- * To use this library you can add a `using SafeERC20 for IERC20;` statement to your contract,
- * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.
- */
-library SafeERC20 {
-    /**
-     * @dev An operation with an ERC-20 token failed.
-     */
-    error SafeERC20FailedOperation(address token);
-
-    /**
-     * @dev Indicates a failed `decreaseAllowance` request.
-     */
-    error SafeERC20FailedDecreaseAllowance(address spender, uint256 currentAllowance, uint256 requestedDecrease);
-
-    /**
-     * @dev Transfer `value` amount of `token` from the calling contract to `to`. If `token` returns no value,
-     * non-reverting calls are assumed to be successful.
-     */
-    function safeTransfer(IERC20 token, address to, uint256 value) internal {
-        _callOptionalReturn(token, abi.encodeCall(token.transfer, (to, value)));
-    }
-
-    /**
-     * @dev Transfer `value` amount of `token` from `from` to `to`, spending the approval given by `from` to the
-     * calling contract. If `token` returns no value, non-reverting calls are assumed to be successful.
-     */
-    function safeTransferFrom(IERC20 token, address from, address to, uint256 value) internal {
-        _callOptionalReturn(token, abi.encodeCall(token.transferFrom, (from, to, value)));
-    }
-
-    /**
-     * @dev Variant of {safeTransfer} that returns a bool instead of reverting if the operation is not successful.
-     */
-    function trySafeTransfer(IERC20 token, address to, uint256 value) internal returns (bool) {
-        return _callOptionalReturnBool(token, abi.encodeCall(token.transfer, (to, value)));
-    }
-
-    /**
-     * @dev Variant of {safeTransferFrom} that returns a bool instead of reverting if the operation is not successful.
-     */
-    function trySafeTransferFrom(IERC20 token, address from, address to, uint256 value) internal returns (bool) {
-        return _callOptionalReturnBool(token, abi.encodeCall(token.transferFrom, (from, to, value)));
-    }
-
-    /**
-     * @dev Increase the calling contract's allowance toward `spender` by `value`. If `token` returns no value,
-     * non-reverting calls are assumed to be successful.
-     *
-     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the "client"
-     * smart contract uses ERC-7674 to set temporary allowances, then the "client" smart contract should avoid using
-     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract
-     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.
-     */
-    function safeIncreaseAllowance(IERC20 token, address spender, uint256 value) internal {
-        uint256 oldAllowance = token.allowance(address(this), spender);
-        forceApprove(token, spender, oldAllowance + value);
-    }
-
-    /**
-     * @dev Decrease the calling contract's allowance toward `spender` by `requestedDecrease`. If `token` returns no
-     * value, non-reverting calls are assumed to be successful.
-     *
-     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the "client"
-     * smart contract uses ERC-7674 to set temporary allowances, then the "client" smart contract should avoid using
-     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract
-     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.
-     */
-    function safeDecreaseAllowance(IERC20 token, address spender, uint256 requestedDecrease) internal {
-        unchecked {
-            uint256 currentAllowance = token.allowance(address(this), spender);
-            if (currentAllowance < requestedDecrease) {
-                revert SafeERC20FailedDecreaseAllowance(spender, currentAllowance, requestedDecrease);
-            }
-            forceApprove(token, spender, currentAllowance - requestedDecrease);
-        }
-    }
-
-    /**
-     * @dev Set the calling contract's allowance toward `spender` to `value`. If `token` returns no value,
-     * non-reverting calls are assumed to be successful. Meant to be used with tokens that require the approval
-     * to be set to zero before setting it to a non-zero value, such as USDT.
-     *
-     * NOTE: If the token implements ERC-7674, this function will not modify any temporary allowance. This function
-     * only sets the "standard" allowance. Any temporary allowance will remain active, in addition to the value being
-     * set here.
-     */
-    function forceApprove(IERC20 token, address spender, uint256 value) internal {
-        bytes memory approvalCall = abi.encodeCall(token.approve, (spender, value));
-
-        if (!_callOptionalReturnBool(token, approvalCall)) {
-            _callOptionalReturn(token, abi.encodeCall(token.approve, (spender, 0)));
-            _callOptionalReturn(token, approvalCall);
-        }
-    }
-
-    /**
-     * @dev Performs an {ERC1363} transferAndCall, with a fallback to the simple {ERC20} transfer if the target has no
-     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when
-     * targeting contracts.
-     *
-     * Reverts if the returned value is other than `true`.
-     */
-    function transferAndCallRelaxed(IERC1363 token, address to, uint256 value, bytes memory data) internal {
-        if (to.code.length == 0) {
-            safeTransfer(token, to, value);
-        } else if (!token.transferAndCall(to, value, data)) {
-            revert SafeERC20FailedOperation(address(token));
-        }
-    }
-
-    /**
-     * @dev Performs an {ERC1363} transferFromAndCall, with a fallback to the simple {ERC20} transferFrom if the target
-     * has no code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when
-     * targeting contracts.
-     *
-     * Reverts if the returned value is other than `true`.
-     */
-    function transferFromAndCallRelaxed(
-        IERC1363 token,
-        address from,
-        address to,
-        uint256 value,
-        bytes memory data
-    ) internal {
-        if (to.code.length == 0) {
-            safeTransferFrom(token, from, to, value);
-        } else if (!token.transferFromAndCall(from, to, value, data)) {
-            revert SafeERC20FailedOperation(address(token));
-        }
-    }
-
-    /**
-     * @dev Performs an {ERC1363} approveAndCall, with a fallback to the simple {ERC20} approve if the target has no
-     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when
-     * targeting contracts.
-     *
-     * NOTE: When the recipient address (`to`) has no code (i.e. is an EOA), this function behaves as {forceApprove}.
-     * Opposedly, when the recipient address (`to`) has code, this function only attempts to call {ERC1363-approveAndCall}
-     * once without retrying, and relies on the returned value to be true.
-     *
-     * Reverts if the returned value is other than `true`.
-     */
-    function approveAndCallRelaxed(IERC1363 token, address to, uint256 value, bytes memory data) internal {
-        if (to.code.length == 0) {
-            forceApprove(token, to, value);
-        } else if (!token.approveAndCall(to, value, data)) {
-            revert SafeERC20FailedOperation(address(token));
-        }
-    }
-
-    /**
-     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
-     * on the return value: the return value is optional (but if data is returned, it must not be false).
-     * @param token The token targeted by the call.
-     * @param data The call data (encoded using abi.encode or one of its variants).
-     *
-     * This is a variant of {_callOptionalReturnBool} that reverts if call fails to meet the requirements.
-     */
-    function _callOptionalReturn(IERC20 token, bytes memory data) private {
-        uint256 returnSize;
-        uint256 returnValue;
-        assembly ("memory-safe") {
-            let success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)
-            // bubble errors
-            if iszero(success) {
-                let ptr := mload(0x40)
-                returndatacopy(ptr, 0, returndatasize())
-                revert(ptr, returndatasize())
-            }
-            returnSize := returndatasize()
-            returnValue := mload(0)
-        }
-
-        if (returnSize == 0 ? address(token).code.length == 0 : returnValue != 1) {
-            revert SafeERC20FailedOperation(address(token));
-        }
-    }
-
-    /**
-     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
-     * on the return value: the return value is optional (but if data is returned, it must not be false).
-     * @param token The token targeted by the call.
-     * @param data The call data (encoded using abi.encode or one of its variants).
-     *
-     * This is a variant of {_callOptionalReturn} that silently catches all reverts and returns a bool instead.
-     */
-    function _callOptionalReturnBool(IERC20 token, bytes memory data) private returns (bool) {
-        bool success;
-        uint256 returnSize;
-        uint256 returnValue;
-        assembly ("memory-safe") {
-            success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)
-            returnSize := returndatasize()
-            returnValue := mload(0)
-        }
-        return success && (returnSize == 0 ? address(token).code.length > 0 : returnValue == 1);
-    }
-}
-
 // File: @openzeppelin/contracts/utils/Context.sol
 
 
@@ -640,211 +294,259 @@ abstract contract ReentrancyGuard {
     }
 }
 
-// File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
-
-
-// OpenZeppelin Contracts (last updated v5.4.0) (token/ERC20/extensions/IERC20Metadata.sol)
-
-pragma solidity >=0.6.2;
-
-
-/**
- * @dev Interface for the optional metadata functions from the ERC-20 standard.
- */
-interface IERC20Metadata is IERC20 {
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() external view returns (string memory);
-
-    /**
-     * @dev Returns the symbol of the token.
-     */
-    function symbol() external view returns (string memory);
-
-    /**
-     * @dev Returns the decimals places of the token.
-     */
-    function decimals() external view returns (uint8);
-}
-
 // File: danpresale.sol
 
 
-pragma solidity ^0.8.20;
-
-
-
-
-
+pragma solidity ^0.8.20;
 
 /**
- * @title PreSale
- * @dev This contract manages a token presale on the Polygon network.
- * It allows users to purchase a specified ERC20 token using MATIC.
- * The contract owner has full control over the presale status, pricing,
- * and fund management.
- *
- * It is highly recommended to test this contract on a testnet (like Polygon Mumbai)
- * before deploying to the mainnet.
+ * @title TokenPresale
+ * @dev A smart contract for conducting a token presale on the Polygon network using MATIC.
+ * The contract owner can manage the presale, including starting/stopping it, updating the price,
+ * and withdrawing funds and unsold tokens.
  */
-contract PreSale is Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
+contract TokenPresale is Ownable, ReentrancyGuard {
+    // The ERC20 token being sold in the presale
+    IERC20 public myToken;
 
-    // --- State Variables ---
+    // The price of one unit of the token for each tier, in a fixed-point representation
+    mapping(uint256 => uint256) public tierPrices;
+    
+    // The total tokens to be sold in each tier
+    mapping(uint256 => uint256) public tierTokenLimits;
+    
+    // The current active presale tier
+    uint256 public currentTier;
 
-    // The address of the token being sold in the presale.
-    // User's token from the request: 0x46fc3e44a9dbbbb6b9abcd9c55b7f91037f16cffd
-    IERC20Metadata public immutable token;
+    // Total number of tokens sold during the presale
+    uint256 public totalTokensSold;
 
-    // The price of the token, represented as the number of tokens
-    // a user receives for 1 MATIC.
-    uint256 public tokensPerMatic;
-
-    // A flag to indicate whether the presale is currently active.
-    bool public preSaleActive;
-
-    // Total amount of MATIC raised during the presale.
+    // Total MATIC raised from the presale
     uint256 public totalMaticRaised;
 
-    // A mapping to track the amount of tokens sold to each address.
-    mapping(address => uint256) public tokensSoldTo;
+    // Boolean to control the state of the presale (active or not)
+    bool public presaleActive;
 
-    // Minimum and maximum MATIC amount per single buy transaction.
+    // Address of the token to be sold
+    address public immutable tokenAddress;
+    
+    // Minimum and maximum amount of MATIC a user can spend per purchase
     uint256 public minMaticBuy;
     uint256 public maxMaticBuy;
 
-    // --- Events ---
+    // Variables for the two-step tier update process
+    mapping(uint256 => uint256) private _proposedTierPrices;
+    mapping(uint256 => uint256) private _proposedTierTokenLimits;
+    uint256 public proposedTiersTimestamp;
 
+    // A time delay of 24 hours for the tier update to prevent front-running
+    uint256 public constant TIER_UPDATE_DELAY = 24 hours;
+
+    // Events to log important actions
     event PresaleStarted();
-    event PresaleEnded();
-    event TokenPriceUpdated(uint256 newPrice);
-    event TokensPurchased(address indexed buyer, uint256 maticAmount, uint256 tokenAmount);
-    event MaticWithdrawn(address indexed to, uint256 amount);
-    event UnsoldTokensWithdrawn(uint256 amount);
+    event PresaleStopped();
+    event TiersProposed();
+    event TiersUpdated();
     event BuyLimitsUpdated(uint256 newMin, uint256 newMax);
+    event TokensPurchased(address indexed buyer, uint256 maticAmount, uint256 tokenAmount);
+    event TokensDeposited(address indexed owner, uint256 amount);
+    event RaisedMaticWithdrawn(address indexed owner, uint256 amount);
+    event RemainingTokensWithdrawn(address indexed owner, uint256 amount);
 
     /**
-     * @dev The constructor initializes the contract with the token address,
-     * an initial price, and buy limits.
-     * @param _tokenAddress The address of the ERC20 token to be sold.
-     * @param _tokensPerMatic The initial price (tokens per 1 MATIC).
-     * @param _minMaticBuy The minimum amount of MATIC for a purchase.
-     * @param _maxMaticBuy The maximum amount of MATIC for a purchase.
+     * @dev The constructor initializes the contract with the address of the token to be sold.
+     * @param _tokenAddress The address of the ERC20 token.
      */
-    constructor(
-        address _tokenAddress,
-        uint256 _tokensPerMatic,
-        uint256 _minMaticBuy,
-        uint256 _maxMaticBuy
-    ) Ownable(msg.sender) {
-        token = IERC20Metadata(_tokenAddress);
-        tokensPerMatic = _tokensPerMatic;
-        minMaticBuy = _minMaticBuy;
-        maxMaticBuy = _maxMaticBuy;
-        preSaleActive = false;
+    constructor(address _tokenAddress) Ownable(msg.sender) {
+        tokenAddress = _tokenAddress;
+        myToken = IERC20(tokenAddress);
+
+        // Set initial purchase limits.
+        minMaticBuy = 1e18; // 1 MATIC
+        maxMaticBuy = 100e18; // 100 MATIC
+        presaleActive = false;
+        currentTier = 1;
     }
 
-    // --- Public Functions ---
+    // --- Owner-specific functions ---
 
     /**
-     * @dev Allows users to purchase tokens using MATIC.
-     * The `payable` modifier makes this function able to receive MATIC.
-     * The `nonReentrant` modifier prevents reentrancy attacks.
-     * Note: This function assumes the incoming MATIC has 18 decimals.
+     * @dev Allows the owner to propose a new set of prices and token limits for each tier.
+     * The changes will not take effect until the `commitTiers` function is called after a delay.
+     * @param _proposedPrices An array of prices for each tier.
+     * @param _proposedLimits An array of token limits for each tier.
      */
-    function buyTokens() external payable nonReentrant {
-        // Ensure the presale is active
-        require(preSaleActive, "Presale is not active");
+    function proposeTiers(uint256[] calldata _proposedPrices, uint256[] calldata _proposedLimits) external onlyOwner {
+        require(_proposedPrices.length == _proposedLimits.length, "Arrays must have the same length");
+        require(_proposedPrices.length > 0, "Tiers cannot be empty");
+        
+        for (uint i = 0; i < _proposedPrices.length; i++) {
+            _proposedTierPrices[i + 1] = _proposedPrices[i];
+            _proposedTierTokenLimits[i + 1] = _proposedLimits[i];
+        }
 
-        // Enforce buy limits
-        require(msg.value >= minMaticBuy, "MATIC amount is below the minimum buy limit");
-        require(msg.value <= maxMaticBuy, "MATIC amount exceeds the maximum buy limit");
-
-        // Calculate the amount of tokens to send to the buyer, handling token decimals.
-        // We use IERC20Metadata to get the token's decimals.
-        uint256 tokenAmount = (msg.value * tokensPerMatic * (10 ** token.decimals())) / (10 ** 18);
-
-        // Ensure the contract has enough tokens to fulfill the order.
-        require(IERC20(address(token)).balanceOf(address(this)) >= tokenAmount, "Not enough tokens available for sale");
-
-        // Record the MATIC raised and tokens sold
-        totalMaticRaised += msg.value;
-        tokensSoldTo[msg.sender] += tokenAmount;
-
-        // Transfer the tokens to the buyer.
-        IERC20(address(token)).safeTransfer(msg.sender, tokenAmount);
-
-        // Emit an event to log the purchase.
-        emit TokensPurchased(msg.sender, msg.value, tokenAmount);
+        proposedTiersTimestamp = block.timestamp;
+        
+        emit TiersProposed();
     }
 
-    // --- Owner-only Functions ---
+    /**
+     * @dev Allows the owner to commit the proposed tiers after the required time delay.
+     * The new tiers will then become active.
+     */
+    function commitTiers() external onlyOwner {
+        require(proposedTiersTimestamp + TIER_UPDATE_DELAY <= block.timestamp, "Tier update is not ready yet");
+        
+        uint256 i = 1;
+        while (_proposedTierPrices[i] > 0) {
+            tierPrices[i] = _proposedTierPrices[i];
+            tierTokenLimits[i] = _proposedTierTokenLimits[i];
+            i++;
+        }
+        
+        // Reset proposed tiers
+        for (uint256 j = 1; j < i; j++) {
+            _proposedTierPrices[j] = 0;
+            _proposedTierTokenLimits[j] = 0;
+        }
+
+        emit TiersUpdated();
+    }
 
     /**
      * @dev Allows the owner to start the presale.
-     * Only callable if the presale is not already active.
+     * Requires the presale to not be active.
      */
     function startPresale() external onlyOwner {
-        require(!preSaleActive, "Presale is already active");
-        preSaleActive = true;
+        require(!presaleActive, "Presale is already active");
+        require(tierPrices[1] > 0, "Tiers must be configured and committed before starting the presale");
+        presaleActive = true;
         emit PresaleStarted();
     }
 
     /**
-     * @dev Allows the owner to stop the presale.
-     * Only callable if the presale is active.
+     * @dev Allows the owner to stop the presale manually.
+     * Requires the presale to be active.
      */
     function stopPresale() external onlyOwner {
-        require(preSaleActive, "Presale is not active");
-        preSaleActive = false;
-        emit PresaleEnded();
+        require(presaleActive, "Presale is not active");
+        presaleActive = false;
+        emit PresaleStopped();
+    }
+    
+    /**
+     * @dev Allows the owner to update the minimum and maximum MATIC a user can spend.
+     * @param _minMaticBuy The new minimum MATIC buy amount.
+     * @param _maxMaticBuy The new maximum MATIC buy amount.
+     */
+    function setMinMaxMaticBuy(uint256 _minMaticBuy, uint256 _maxMaticBuy) external onlyOwner {
+        require(_minMaticBuy > 0, "Minimum buy must be greater than zero");
+        require(_maxMaticBuy >= _minMaticBuy, "Maximum buy must be greater than or equal to minimum buy");
+        minMaticBuy = _minMaticBuy;
+        maxMaticBuy = _maxMaticBuy;
+        emit BuyLimitsUpdated(_minMaticBuy, _maxMaticBuy);
     }
 
     /**
-     * @dev Allows the owner to update the token price.
-     * @param _newPrice The new price, representing tokens per 1 MATIC.
+     * @dev Allows the owner to deposit tokens into the presale contract.
+     * The owner must have already approved this contract to spend their tokens.
+     * @param amount The number of tokens to deposit.
      */
-    function setTokenPrice(uint256 _newPrice) external onlyOwner {
-        tokensPerMatic = _newPrice;
-        emit TokenPriceUpdated(_newPrice);
+    function depositTokensForSale(uint256 amount) external onlyOwner {
+        // Transfer the tokens from the owner's address to this contract
+        require(myToken.transferFrom(msg.sender, address(this), amount), "Token deposit failed");
+        emit TokensDeposited(msg.sender, amount);
     }
 
     /**
-     * @dev Allows the owner to set the minimum and maximum buy limits.
-     * @param _newMin The new minimum MATIC buy limit.
-     * @param _newMax The new maximum MATIC buy limit.
+     * @dev Allows the owner to withdraw the MATIC raised from the presale.
+     * Requires the presale to be stopped.
      */
-    function setBuyLimits(uint256 _newMin, uint256 _newMax) external onlyOwner {
-        require(_newMin <= _newMax, "Min buy must be less than or equal to max buy");
-        minMaticBuy = _newMin;
-        maxMaticBuy = _newMax;
-        emit BuyLimitsUpdated(_newMin, _newMax);
-    }
-
-    /**
-     * @dev Allows the owner to withdraw the collected MATIC.
-     * This function transfers the entire MATIC balance of the contract to the owner.
-     */
-    function withdrawFunds() external onlyOwner {
+    function withdrawRaisedMatic() external onlyOwner {
+        require(!presaleActive, "Presale must be stopped to withdraw funds");
         uint256 balance = address(this).balance;
         require(balance > 0, "No MATIC to withdraw");
 
-        // Use a low-level call to handle the MATIC transfer safely.
-        (bool sent,) = payable(owner()).call{value: balance}("");
-        require(sent, "Failed to withdraw MATIC");
-        emit MaticWithdrawn(owner(), balance);
+        // Transfer MATIC to the owner's address
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Failed to withdraw MATIC");
+
+        emit RaisedMaticWithdrawn(owner(), balance);
     }
 
     /**
-     * @dev Allows the owner to withdraw any unsold tokens from the contract.
-     * This can be used after the presale has ended.
+     * @dev Allows the owner to withdraw any remaining unsold tokens.
+     * This can be done at any time.
      */
-    function withdrawUnsoldTokens() external onlyOwner {
-        uint256 tokenBalance = IERC20(address(token)).balanceOf(address(this));
-        require(tokenBalance > 0, "No tokens to withdraw");
+    function withdrawRemainingTokens() external onlyOwner {
+        uint256 remainingTokens = myToken.balanceOf(address(this));
+        require(remainingTokens > 0, "No remaining tokens to withdraw");
 
-        IERC20(address(token)).safeTransfer(owner(), tokenBalance);
-        emit UnsoldTokensWithdrawn(tokenBalance);
+        // Transfer the remaining tokens back to the owner's address
+        require(myToken.transfer(owner(), remainingTokens), "Failed to withdraw remaining tokens");
+        emit RemainingTokensWithdrawn(owner(), remainingTokens);
+    }
+
+    // --- Public/User functions ---
+
+    /**
+     * @dev Allows a user to buy tokens with MATIC.
+     * This function is payable and can receive MATIC.
+     */
+    function buyTokens() public payable nonReentrant {
+        require(presaleActive, "Presale is not active");
+        require(tierPrices[currentTier] > 0, "Presale is complete, no more tiers available");
+        require(msg.value >= minMaticBuy, "Amount must be greater than or equal to minimum purchase");
+        require(msg.value <= maxMaticBuy, "Amount must be less than or equal to maximum purchase");
+
+        // Calculate the number of tokens to sell based on the MATIC sent and current tier price.
+        uint256 tokensToBuy = (msg.value * 1e18) / tierPrices[currentTier];
+        uint256 tokensSoldInCurrentTier = totalTokensSold - tierTokenLimits[currentTier-1];
+        require(tokensToBuy + tokensSoldInCurrentTier <= tierTokenLimits[currentTier], "Purchase exceeds current tier's limit");
+
+        require(myToken.balanceOf(address(this)) >= tokensToBuy, "Not enough tokens in contract");
+
+        // Transfer tokens to the buyer
+        require(myToken.transfer(msg.sender, tokensToBuy), "Token transfer failed");
+
+        // Update the total sold and MATIC raised counts
+        totalTokensSold += tokensToBuy;
+        totalMaticRaised += msg.value;
+
+        // Check if the current tier is sold out and advance to the next tier
+        if (totalTokensSold >= tierTokenLimits[currentTier]) {
+            currentTier++;
+        }
+
+        // Emit the event to log the purchase
+        emit TokensPurchased(msg.sender, msg.value, tokensToBuy);
+    }
+
+    /**
+     * @dev Returns the total amount of MATIC raised during the presale.
+     */
+    function maticRaised() external view returns (uint256) {
+        return totalMaticRaised;
+    }
+
+    /**
+     * @dev Returns the number of unsold tokens remaining in the contract.
+     */
+    function tokensRemaining() external view returns (uint256) {
+        return myToken.balanceOf(address(this)) - totalTokensSold;
+    }
+
+    /**
+     * @dev Returns the current number of tokens per 1 MATIC.
+     */
+    function getCurrentPrice() external view returns (uint256) {
+        return (1e36) / tierPrices[currentTier];
+    }
+
+    /**
+     * @dev Fallback function that reverts, forcing users to use the `buyTokens` function.
+     */
+    receive() external payable {
+        revert("Use buyTokens function");
     }
 }
