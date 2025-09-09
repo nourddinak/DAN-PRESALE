@@ -9,42 +9,27 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "_initialOwner",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "_danToken",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "_usdtToken",
+						"name": "_tokenAddress",
 						"type": "address"
 					},
 					{
 						"internalType": "uint256",
-						"name": "_tokenPriceMATIC",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_tokenPriceUSDT",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_minPurchaseMATIC",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_minPurchaseUSDT",
+						"name": "_initialTokenPrice",
 						"type": "uint256"
 					}
 				],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "EnforcedPause",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "ExpectedPause",
+				"type": "error"
 			},
 			{
 				"inputs": [
@@ -83,25 +68,13 @@
 				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
 						"indexed": false,
 						"internalType": "uint256",
 						"name": "amount",
 						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "string",
-						"name": "tokenType",
-						"type": "string"
 					}
 				],
-				"name": "FundsWithdrawn",
+				"name": "MaticWithdrawn",
 				"type": "event"
 			},
 			{
@@ -138,15 +111,27 @@
 			},
 			{
 				"anonymous": false,
+				"inputs": [],
+				"name": "PresaleStarted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [],
+				"name": "PresaleStopped",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
 				"inputs": [
 					{
 						"indexed": false,
-						"internalType": "bool",
-						"name": "active",
-						"type": "bool"
+						"internalType": "uint256",
+						"name": "newPrice",
+						"type": "uint256"
 					}
 				],
-				"name": "PresaleStatusChanged",
+				"name": "TokenPriceUpdated",
 				"type": "event"
 			},
 			{
@@ -174,14 +159,14 @@
 					{
 						"indexed": false,
 						"internalType": "uint256",
-						"name": "amount",
+						"name": "maticPaid",
 						"type": "uint256"
 					},
 					{
 						"indexed": false,
-						"internalType": "string",
-						"name": "paymentToken",
-						"type": "string"
+						"internalType": "uint256",
+						"name": "tokensReceived",
+						"type": "uint256"
 					}
 				],
 				"name": "TokensPurchased",
@@ -201,36 +186,23 @@
 				"type": "event"
 			},
 			{
-				"inputs": [],
-				"name": "buyWithMATIC",
-				"outputs": [],
-				"stateMutability": "payable",
-				"type": "function"
-			},
-			{
+				"anonymous": false,
 				"inputs": [
 					{
+						"indexed": false,
 						"internalType": "uint256",
-						"name": "usdtAmount",
+						"name": "amount",
 						"type": "uint256"
 					}
 				],
-				"name": "buyWithUSDT",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
+				"name": "UnsoldTokensWithdrawn",
+				"type": "event"
 			},
 			{
 				"inputs": [],
-				"name": "danToken",
-				"outputs": [
-					{
-						"internalType": "contract IERC20",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
+				"name": "buyTokens",
+				"outputs": [],
+				"stateMutability": "payable",
 				"type": "function"
 			},
 			{
@@ -248,28 +220,16 @@
 			},
 			{
 				"inputs": [],
-				"name": "minPurchaseMATIC",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
+				"name": "emergencyPause",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "minPurchaseUSDT",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
+				"name": "emergencyUnpause",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -283,13 +243,6 @@
 					}
 				],
 				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "pause",
-				"outputs": [],
-				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -320,27 +273,41 @@
 			},
 			{
 				"inputs": [],
+				"name": "presaleToken",
+				"outputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
 				"name": "renounceOwnership",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "bool",
-						"name": "_status",
-						"type": "bool"
-					}
-				],
-				"name": "togglePresale",
+				"inputs": [],
+				"name": "startPresale",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "tokenPriceMATIC",
+				"name": "stopPresale",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "tokenPrice",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -353,7 +320,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "tokenPriceUSDT",
+				"name": "totalMaticRaised",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -378,86 +345,45 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "newPrice",
+						"type": "uint256"
+					}
+				],
+				"name": "updateTokenPrice",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
-				"name": "unpause",
+				"name": "withdrawMatic",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "usdtToken",
-				"outputs": [
-					{
-						"internalType": "contract IERC20",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address payable",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "withdrawMATIC",
+				"name": "withdrawUnsoldTokens",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "withdrawTokens",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "withdrawUSDT",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"stateMutability": "payable",
-				"type": "receive"
 			}
 		],
 		"devdoc": {
 			"errors": {
+				"EnforcedPause()": [
+					{
+						"details": "The operation failed because the contract is paused."
+					}
+				],
+				"ExpectedPause()": [
+					{
+						"details": "The operation failed because the contract is not paused."
+					}
+				],
 				"OwnableInvalidOwner(address)": [
 					{
 						"details": "The owner is not a valid owner account. (eg. `address(0)`)"
@@ -484,6 +410,11 @@
 			},
 			"kind": "dev",
 			"methods": {
+				"depositTokens(uint256)": {
+					"params": {
+						"amount": "The amount of tokens to deposit"
+					}
+				},
 				"owner()": {
 					"details": "Returns the address of the current owner."
 				},
@@ -495,6 +426,11 @@
 				},
 				"transferOwnership(address)": {
 					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+				},
+				"updateTokenPrice(uint256)": {
+					"params": {
+						"newPrice": "The new price of one token in MATIC (wei)"
+					}
 				}
 			},
 			"version": 1
@@ -502,8 +438,32 @@
 		"userdoc": {
 			"kind": "user",
 			"methods": {
-				"withdrawMATIC(address,uint256)": {
-					"notice": "✅ Fixed: use call instead of transfer"
+				"buyTokens()": {
+					"notice": "Allows a user to buy tokens with MATIC"
+				},
+				"depositTokens(uint256)": {
+					"notice": "Allows the owner to deposit tokens for the presale"
+				},
+				"emergencyPause()": {
+					"notice": "Allows the owner to pause the contract in an emergency"
+				},
+				"emergencyUnpause()": {
+					"notice": "Allows the owner to unpause the contract"
+				},
+				"startPresale()": {
+					"notice": "Starts the presale"
+				},
+				"stopPresale()": {
+					"notice": "Stops the presale"
+				},
+				"updateTokenPrice(uint256)": {
+					"notice": "Updates the price of the presale token"
+				},
+				"withdrawMatic()": {
+					"notice": "Withdraws MATIC raised from the presale"
+				},
+				"withdrawUnsoldTokens()": {
+					"notice": "Withdraws unsold tokens to the owner's address"
 				}
 			},
 			"version": 1
@@ -511,7 +471,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"danpresale.sol": "DANPresale"
+			"danpresale.sol": "MyPresale"
 		},
 		"evmVersion": "prague",
 		"libraries": {},
@@ -557,36 +517,12 @@
 				"dweb:/ipfs/QmcRWpaBeCYkhy68PR3B4AgD7asuQk7PwkWxrvJbZcikLF"
 			]
 		},
-		"@openzeppelin/contracts/security/Pausable.sol": {
-			"keccak256": "0x0849d93b16c9940beb286a7864ed02724b248b93e0d80ef6355af5ef15c64773",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://4ddabb16009cd17eaca3143feadf450ac13e72919ebe2ca50e00f61cb78bc004",
-				"dweb:/ipfs/QmSPwPxX7d6TTWakN5jy5wsaGkS1y9TW8fuhGSraMkLk2B"
-			]
-		},
-		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
-			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
-				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
-			]
-		},
 		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
 			"keccak256": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
 			"license": "MIT",
 			"urls": [
 				"bzz-raw://5282825a626cfe924e504274b864a652b0023591fa66f06a067b25b51ba9b303",
 				"dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
-			]
-		},
-		"@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
-			"keccak256": "0xd6fa4088198f04eef10c5bce8a2f4d60554b7ec4b987f684393c01bf79b94d9f",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://f95ee0bbd4dd3ac730d066ba3e785ded4565e890dbec2fa7d3b9fe3bad9d0d6e",
-				"dweb:/ipfs/QmSLr6bHkPFWT7ntj34jmwfyskpwo97T9jZUrk5sz3sdtR"
 			]
 		},
 		"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": {
@@ -605,6 +541,14 @@
 				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
 			]
 		},
+		"@openzeppelin/contracts/utils/Pausable.sol": {
+			"keccak256": "0xdb484371dfbb848cb6f5d70464e9ac9b2900e4164ead76bbce4fef0b44bcc68f",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f9d6f6f6600a2bec622f699081b58350873b5e63ce05464d17d674a290bb8a7c",
+				"dweb:/ipfs/QmQKVzSQY1PM3Bid4QhgVVZyx6B4Jx7XgaQzLKHj38vJz8"
+			]
+		},
 		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
 			"keccak256": "0x8891738ffe910f0cf2da09566928589bf5d63f4524dd734fd9cedbac3274dd5c",
 			"license": "MIT",
@@ -614,11 +558,11 @@
 			]
 		},
 		"danpresale.sol": {
-			"keccak256": "0x59dd1b18e60ea146eba53a538aeb3ba21f8d5ab56eaccf35d9d815c36e449ecc",
+			"keccak256": "0xa7f3a1c8178d3da1a74707e89c10673dbc190153801aec4a4ad193bbdf408b51",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://9d9c966faf2bbef361eb589860ec63196b25fcff0af709e39fe8d72586b2d426",
-				"dweb:/ipfs/QmZgBU8Vy7Ya6DKi5RZHvFPVtX5QqTTMfohmJJFnZGQtny"
+				"bzz-raw://eca006fd2238a4b0c8e69d2f412e5e6b669844ea89c6ad3370baf0f048b02528",
+				"dweb:/ipfs/Qma4UZdcmagDe2F3U7zkDMgkdNCsveMPLMsuKq9kfTt9Ap"
 			]
 		}
 	},

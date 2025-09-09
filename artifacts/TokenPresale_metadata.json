@@ -9,42 +9,22 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "_initialOwner",
+						"name": "_presaleTokenAddress",
 						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "_danToken",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "_usdtToken",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_tokenPriceMATIC",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_tokenPriceUSDT",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_minPurchaseMATIC",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_minPurchaseUSDT",
-						"type": "uint256"
 					}
 				],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "EnforcedPause",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "ExpectedPause",
+				"type": "error"
 			},
 			{
 				"inputs": [
@@ -85,7 +65,7 @@
 					{
 						"indexed": true,
 						"internalType": "address",
-						"name": "to",
+						"name": "owner",
 						"type": "address"
 					},
 					{
@@ -97,7 +77,7 @@
 					{
 						"indexed": false,
 						"internalType": "string",
-						"name": "tokenType",
+						"name": "currency",
 						"type": "string"
 					}
 				],
@@ -140,32 +120,6 @@
 				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": false,
-						"internalType": "bool",
-						"name": "active",
-						"type": "bool"
-					}
-				],
-				"name": "PresaleStatusChanged",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "TokensDeposited",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
 						"indexed": true,
 						"internalType": "address",
 						"name": "buyer",
@@ -174,13 +128,19 @@
 					{
 						"indexed": false,
 						"internalType": "uint256",
-						"name": "amount",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "tokensReceived",
 						"type": "uint256"
 					},
 					{
 						"indexed": false,
 						"internalType": "string",
-						"name": "paymentToken",
+						"name": "currency",
 						"type": "string"
 					}
 				],
@@ -201,8 +161,33 @@
 				"type": "event"
 			},
 			{
-				"inputs": [],
-				"name": "buyWithMATIC",
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "UnsoldTokensWithdrawn",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_tokensToBuy",
+						"type": "uint256"
+					}
+				],
+				"name": "buyTokensWithMatic",
 				"outputs": [],
 				"stateMutability": "payable",
 				"type": "function"
@@ -211,44 +196,25 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "usdtAmount",
+						"name": "_tokensToBuy",
 						"type": "uint256"
 					}
 				],
-				"name": "buyWithUSDT",
+				"name": "buyTokensWithUsdt",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "danToken",
-				"outputs": [
-					{
-						"internalType": "contract IERC20",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "depositTokens",
+				"name": "emergencyWithdraw",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "minPurchaseMATIC",
+				"name": "endSaleTime",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -261,7 +227,46 @@
 			},
 			{
 				"inputs": [],
-				"name": "minPurchaseUSDT",
+				"name": "isPresaleActive",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "maticTokenPrice",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "maxPurchaseTokenAmount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minPurchaseTokenAmount",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -307,12 +312,12 @@
 			},
 			{
 				"inputs": [],
-				"name": "presaleActive",
+				"name": "presaleToken",
 				"outputs": [
 					{
-						"internalType": "bool",
+						"internalType": "contract ERC20",
 						"name": "",
-						"type": "bool"
+						"type": "address"
 					}
 				],
 				"stateMutability": "view",
@@ -328,19 +333,68 @@
 			{
 				"inputs": [
 					{
-						"internalType": "bool",
-						"name": "_status",
-						"type": "bool"
+						"internalType": "uint256",
+						"name": "_newPrice",
+						"type": "uint256"
 					}
 				],
-				"name": "togglePresale",
+				"name": "setMaticTokenPrice",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minAmount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_maxAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinMaxPurchase",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_startTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_endTime",
+						"type": "uint256"
+					}
+				],
+				"name": "setPresaleTimes",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_newPrice",
+						"type": "uint256"
+					}
+				],
+				"name": "setUsdtTokenPrice",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "tokenPriceMATIC",
+				"name": "startSaleTime",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -353,7 +407,33 @@
 			},
 			{
 				"inputs": [],
-				"name": "tokenPriceUSDT",
+				"name": "totalMaticRaised",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalTokensSold",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalUsdtRaised",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -398,66 +478,53 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "address payable",
-						"name": "to",
-						"type": "address"
-					},
+				"inputs": [],
+				"name": "usdtTokenPrice",
+				"outputs": [
 					{
 						"internalType": "uint256",
-						"name": "amount",
+						"name": "",
 						"type": "uint256"
 					}
 				],
-				"name": "withdrawMATIC",
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "withdrawMaticFunds",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "withdrawTokens",
+				"inputs": [],
+				"name": "withdrawUnsoldTokens",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "withdrawUSDT",
+				"inputs": [],
+				"name": "withdrawUsdtFunds",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
-			},
-			{
-				"stateMutability": "payable",
-				"type": "receive"
 			}
 		],
 		"devdoc": {
+			"details": "A secure and efficient presale smart contract for a token on the Polygon network. Allows users to purchase tokens using either MATIC or USDT. Includes extensive admin controls and security features.",
 			"errors": {
+				"EnforcedPause()": [
+					{
+						"details": "The operation failed because the contract is paused."
+					}
+				],
+				"ExpectedPause()": [
+					{
+						"details": "The operation failed because the contract is not paused."
+					}
+				],
 				"OwnableInvalidOwner(address)": [
 					{
 						"details": "The owner is not a valid owner account. (eg. `address(0)`)"
@@ -475,17 +542,71 @@
 				]
 			},
 			"events": {
+				"FundsWithdrawn(address,uint256,string)": {
+					"details": "Emitted when the owner withdraws funds from the contract.",
+					"params": {
+						"amount": "The amount of funds withdrawn.",
+						"currency": "The currency of the funds withdrawn (e.g., \"MATIC\" or \"USDT\").",
+						"owner": "The address of the owner."
+					}
+				},
 				"Paused(address)": {
 					"details": "Emitted when the pause is triggered by `account`."
 				},
+				"TokensPurchased(address,uint256,uint256,string)": {
+					"details": "Emitted when a user successfully purchases tokens.",
+					"params": {
+						"amountIn": "The amount of currency (MATIC or USDT) spent.",
+						"buyer": "The address of the user who purchased tokens.",
+						"currency": "The currency used for the purchase (e.g., \"MATIC\" or \"USDT\").",
+						"tokensReceived": "The amount of presale tokens received."
+					}
+				},
 				"Unpaused(address)": {
 					"details": "Emitted when the pause is lifted by `account`."
+				},
+				"UnsoldTokensWithdrawn(address,uint256)": {
+					"details": "Emitted when the owner withdraws unsold tokens.",
+					"params": {
+						"amount": "The amount of unsold tokens withdrawn.",
+						"owner": "The address of the owner."
+					}
 				}
 			},
 			"kind": "dev",
 			"methods": {
+				"buyTokensWithMatic(uint256)": {
+					"details": "Allows users to purchase tokens using native MATIC.",
+					"params": {
+						"_tokensToBuy": "The desired amount of presale tokens to purchase."
+					}
+				},
+				"buyTokensWithUsdt(uint256)": {
+					"details": "Allows users to purchase tokens using USDT. The user must approve this contract to spend their USDT beforehand.",
+					"params": {
+						"_tokensToBuy": "The desired amount of presale tokens to purchase."
+					}
+				},
+				"constructor": {
+					"details": "The constructor initializes the contract with the presale token address.",
+					"params": {
+						"_presaleTokenAddress": "The address of the ERC20 token to be sold."
+					}
+				},
+				"emergencyWithdraw()": {
+					"details": "Allows the owner to withdraw both MATIC and USDT in a single emergency function call."
+				},
+				"isPresaleActive()": {
+					"details": "Returns the current presale status.",
+					"returns": {
+						"_0": "A boolean indicating if the presale is active."
+					}
+				},
 				"owner()": {
 					"details": "Returns the address of the current owner."
+				},
+				"pause()": {
+					"details": "Allows the owner to pause the contract in case of an emergency. The presale cannot be paused if it has already ended."
 				},
 				"paused()": {
 					"details": "Returns true if the contract is paused, and false otherwise."
@@ -493,25 +614,60 @@
 				"renounceOwnership()": {
 					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
 				},
+				"setMaticTokenPrice(uint256)": {
+					"details": "Sets the price of one presale token in MATIC. The price is denominated in wei.",
+					"params": {
+						"_newPrice": "The new price of a single token in MATIC."
+					}
+				},
+				"setMinMaxPurchase(uint256,uint256)": {
+					"details": "Sets the minimum and maximum token purchase amounts per transaction. The values are in token units, and will be converted to the correct decimals.",
+					"params": {
+						"_maxAmount": "The maximum token amount to be purchased.",
+						"_minAmount": "The minimum token amount to be purchased."
+					}
+				},
+				"setPresaleTimes(uint256,uint256)": {
+					"details": "Sets the start and end timestamps for the presale.",
+					"params": {
+						"_endTime": "The end timestamp in Unix time.",
+						"_startTime": "The start timestamp in Unix time."
+					}
+				},
+				"setUsdtTokenPrice(uint256)": {
+					"details": "Sets the price of one presale token in USDT. The price is denominated in wei, assuming 6 decimals for USDT.",
+					"params": {
+						"_newPrice": "The new price of a single token in USDT (1 USDT = 10^6)."
+					}
+				},
 				"transferOwnership(address)": {
 					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+				},
+				"unpause()": {
+					"details": "Allows the owner to unpause the contract."
+				},
+				"withdrawMaticFunds()": {
+					"details": "Allows the owner to withdraw all collected MATIC."
+				},
+				"withdrawUnsoldTokens()": {
+					"details": "Allows the owner to withdraw any unsold presale tokens from the contract."
+				},
+				"withdrawUsdtFunds()": {
+					"details": "Allows the owner to withdraw all collected USDT."
 				}
 			},
+			"title": "TokenPresale",
 			"version": 1
 		},
 		"userdoc": {
 			"kind": "user",
-			"methods": {
-				"withdrawMATIC(address,uint256)": {
-					"notice": "✅ Fixed: use call instead of transfer"
-				}
-			},
+			"methods": {},
 			"version": 1
 		}
 	},
 	"settings": {
 		"compilationTarget": {
-			"danpresale.sol": "DANPresale"
+			"danpresale.sol": "TokenPresale"
 		},
 		"evmVersion": "prague",
 		"libraries": {},
@@ -557,12 +713,12 @@
 				"dweb:/ipfs/QmcRWpaBeCYkhy68PR3B4AgD7asuQk7PwkWxrvJbZcikLF"
 			]
 		},
-		"@openzeppelin/contracts/security/Pausable.sol": {
-			"keccak256": "0x0849d93b16c9940beb286a7864ed02724b248b93e0d80ef6355af5ef15c64773",
+		"@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
+			"keccak256": "0x19fdfb0f3b89a230e7dbd1cf416f1a6b531a3ee5db4da483f946320fc74afc0e",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://4ddabb16009cd17eaca3143feadf450ac13e72919ebe2ca50e00f61cb78bc004",
-				"dweb:/ipfs/QmSPwPxX7d6TTWakN5jy5wsaGkS1y9TW8fuhGSraMkLk2B"
+				"bzz-raw://3490d794728f5bfecb46820431adaff71ba374141545ec20b650bb60353fac23",
+				"dweb:/ipfs/QmPsfxjVpMcZbpE7BH93DzTpEaktESigEw4SmDzkXuJ4WR"
 			]
 		},
 		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
@@ -571,6 +727,14 @@
 			"urls": [
 				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
 				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+			"keccak256": "0x86b7b71a6aedefdad89b607378eeab1dcc5389b9ea7d17346d08af01d7190994",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1dc2db8d94a21eac8efe03adf574c419b08536409b416057a2b5b95cb772c43c",
+				"dweb:/ipfs/QmZfqJCKVU1ScuX2A7s8WZdQEaikwJbDH5JBrBdKTUT4Gu"
 			]
 		},
 		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
@@ -605,6 +769,14 @@
 				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
 			]
 		},
+		"@openzeppelin/contracts/utils/Pausable.sol": {
+			"keccak256": "0xdb484371dfbb848cb6f5d70464e9ac9b2900e4164ead76bbce4fef0b44bcc68f",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f9d6f6f6600a2bec622f699081b58350873b5e63ce05464d17d674a290bb8a7c",
+				"dweb:/ipfs/QmQKVzSQY1PM3Bid4QhgVVZyx6B4Jx7XgaQzLKHj38vJz8"
+			]
+		},
 		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
 			"keccak256": "0x8891738ffe910f0cf2da09566928589bf5d63f4524dd734fd9cedbac3274dd5c",
 			"license": "MIT",
@@ -614,11 +786,11 @@
 			]
 		},
 		"danpresale.sol": {
-			"keccak256": "0x59dd1b18e60ea146eba53a538aeb3ba21f8d5ab56eaccf35d9d815c36e449ecc",
+			"keccak256": "0x3ddedf6e724e6207afa80382bfa1cb43b6962ccf39bfaa0a11ade0924a40ed2d",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://9d9c966faf2bbef361eb589860ec63196b25fcff0af709e39fe8d72586b2d426",
-				"dweb:/ipfs/QmZgBU8Vy7Ya6DKi5RZHvFPVtX5QqTTMfohmJJFnZGQtny"
+				"bzz-raw://ba3287fc654f1ef2389234e1f4fc59236890d1af02a95ad44585f0443a0722cf",
+				"dweb:/ipfs/QmemW72GZx1Kq7Lm6jzy7vg3wmzN1vHrumfM9w9oPgtbT9"
 			]
 		}
 	},
