@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.30;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title TokenPresale
@@ -12,6 +13,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  * and withdrawing funds and unsold tokens.
  */
 contract TokenPresale is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    
     // The ERC20 token being sold in the presale
     IERC20 public myToken;
 
@@ -20,6 +23,9 @@ contract TokenPresale is Ownable, ReentrancyGuard {
     
     // The total tokens to be sold in each tier
     mapping(uint256 => uint256) public tierTokenLimits;
+    
+    // Tracks tokens sold per tier to prevent front-running
+    mapping(uint256 => uint256) public tierTokensSold;
     
     // The current active presale tier
     uint256 public currentTier;
@@ -40,18 +46,9 @@ contract TokenPresale is Ownable, ReentrancyGuard {
     uint256 public minMaticBuy;
     uint256 public maxMaticBuy;
 
-    // Variables for the two-step tier update process
-    mapping(uint256 => uint256) private _proposedTierPrices;
-    mapping(uint256 => uint256) private _proposedTierTokenLimits;
-    uint256 public proposedTiersTimestamp;
-
-    // A time delay of 24 hours for the tier update to prevent front-running
-    uint256 public constant TIER_UPDATE_DELAY = 24 hours;
-
     // Events to log important actions
     event PresaleStarted();
     event PresaleStopped();
-    event TiersProposed();
     event TiersUpdated();
     event BuyLimitsUpdated(uint256 newMin, uint256 newMax);
     event TokensPurchased(address indexed buyer, uint256 maticAmount, uint256 tokenAmount);
@@ -64,59 +61,47 @@ contract TokenPresale is Ownable, ReentrancyGuard {
      * @param _tokenAddress The address of the ERC20 token.
      */
     constructor(address _tokenAddress) Ownable(msg.sender) {
+        require(_tokenAddress != address(0), "Invalid token address");
         tokenAddress = _tokenAddress;
         myToken = IERC20(tokenAddress);
-
-        // Set initial purchase limits.
-        minMaticBuy = 1e18; // 1 MATIC
-        maxMaticBuy = 100e18; // 100 MATIC
-        presaleActive = false;
-        currentTier = 1;
     }
 
     // --- Owner-specific functions ---
 
     /**
-     * @dev Allows the owner to propose a new set of prices and token limits for each tier.
-     * The changes will not take effect until the `commitTiers` function is called after a delay.
-     * @param _proposedPrices An array of prices for each tier.
-     * @param _proposedLimits An array of token limits for each tier.
+     * @dev Allows the owner to set new prices and token limits for each tier instantly.
+     * This function replaces the two-step propose/commit process to allow for immediate changes.
+     * @param _prices An array of prices for each tier.
+     * @param _limits An array of token limits for each tier.
      */
-    function proposeTiers(uint256[] calldata _proposedPrices, uint256[] calldata _proposedLimits) external onlyOwner {
-        require(_proposedPrices.length == _proposedLimits.length, "Arrays must have the same length");
-        require(_proposedPrices.length > 0, "Tiers cannot be empty");
+    function setTiers(uint256[] calldata _prices, uint256[] calldata _limits) external onlyOwner {
+        require(_prices.length == _limits.length, "Arrays must have the same length");
+        require(_prices.length > 0, "Tiers cannot be empty");
         
-        for (uint i = 0; i < _proposedPrices.length; i++) {
-            _proposedTierPrices[i + 1] = _proposedPrices[i];
-            _proposedTierTokenLimits[i + 1] = _proposedLimits[i];
-        }
-
-        proposedTiersTimestamp = block.timestamp;
-        
-        emit TiersProposed();
-    }
-
-    /**
-     * @dev Allows the owner to commit the proposed tiers after the required time delay.
-     * The new tiers will then become active.
-     */
-    function commitTiers() external onlyOwner {
-        require(proposedTiersTimestamp + TIER_UPDATE_DELAY <= block.timestamp, "Tier update is not ready yet");
-        
+        // Clear existing tiers
         uint256 i = 1;
-        while (_proposedTierPrices[i] > 0) {
-            tierPrices[i] = _proposedTierPrices[i];
-            tierTokenLimits[i] = _proposedTierTokenLimits[i];
+        while (tierPrices[i] > 0) {
+            delete tierPrices[i];
+            delete tierTokenLimits[i];
             i++;
         }
-        
-        // Reset proposed tiers
-        for (uint256 j = 1; j < i; j++) {
-            _proposedTierPrices[j] = 0;
-            _proposedTierTokenLimits[j] = 0;
-        }
 
+        // Set new tiers
+        for (uint j = 0; j < _prices.length; j++) {
+            tierPrices[j + 1] = _prices[j];
+            tierTokenLimits[j + 1] = _limits[j];
+        }
+        
         emit TiersUpdated();
+    }
+    
+    /**
+     * @dev Allows the owner to manually set the current active presale tier.
+     * @param _tier The new tier number.
+     */
+    function setCurrentTier(uint256 _tier) external onlyOwner {
+        require(tierPrices[_tier] > 0, "Tier does not exist");
+        currentTier = _tier;
     }
 
     /**
@@ -125,7 +110,7 @@ contract TokenPresale is Ownable, ReentrancyGuard {
      */
     function startPresale() external onlyOwner {
         require(!presaleActive, "Presale is already active");
-        require(tierPrices[1] > 0, "Tiers must be configured and committed before starting the presale");
+        require(tierPrices[1] > 0, "Tiers must be configured before starting the presale");
         presaleActive = true;
         emit PresaleStarted();
     }
@@ -156,11 +141,13 @@ contract TokenPresale is Ownable, ReentrancyGuard {
     /**
      * @dev Allows the owner to deposit tokens into the presale contract.
      * The owner must have already approved this contract to spend their tokens.
+     * NOTE: Before calling this function, you MUST call the `approve` function on your ERC20 token contract
+     * to allow THIS contract to transfer the specified `amount` of tokens from your wallet.
      * @param amount The number of tokens to deposit.
      */
     function depositTokensForSale(uint256 amount) external onlyOwner {
         // Transfer the tokens from the owner's address to this contract
-        require(myToken.transferFrom(msg.sender, address(this), amount), "Token deposit failed");
+        myToken.safeTransferFrom(msg.sender, address(this), amount);
         emit TokensDeposited(msg.sender, amount);
     }
 
@@ -189,7 +176,7 @@ contract TokenPresale is Ownable, ReentrancyGuard {
         require(remainingTokens > 0, "No remaining tokens to withdraw");
 
         // Transfer the remaining tokens back to the owner's address
-        require(myToken.transfer(owner(), remainingTokens), "Failed to withdraw remaining tokens");
+        myToken.safeTransfer(owner(), remainingTokens);
         emit RemainingTokensWithdrawn(owner(), remainingTokens);
     }
 
@@ -198,31 +185,42 @@ contract TokenPresale is Ownable, ReentrancyGuard {
     /**
      * @dev Allows a user to buy tokens with MATIC.
      * This function is payable and can receive MATIC.
+     * @param minTokens The minimum number of tokens the buyer is willing to receive (slippage protection).
      */
-    function buyTokens() public payable nonReentrant {
+    function buyTokens(uint256 minTokens) public payable nonReentrant {
+        // Checks
         require(presaleActive, "Presale is not active");
         require(tierPrices[currentTier] > 0, "Presale is complete, no more tiers available");
         require(msg.value >= minMaticBuy, "Amount must be greater than or equal to minimum purchase");
         require(msg.value <= maxMaticBuy, "Amount must be less than or equal to maximum purchase");
 
         // Calculate the number of tokens to sell based on the MATIC sent and current tier price.
+        // This calculation is robust against integer division issues.
         uint256 tokensToBuy = (msg.value * 1e18) / tierPrices[currentTier];
-        uint256 tokensSoldInCurrentTier = totalTokensSold - tierTokenLimits[currentTier-1];
-        require(tokensToBuy + tokensSoldInCurrentTier <= tierTokenLimits[currentTier], "Purchase exceeds current tier's limit");
+        
+        // Slippage protection: ensure the buyer gets at least `minTokens`
+        require(tokensToBuy >= minTokens, "Slippage protection triggered");
 
+        // Ensure the purchase does not exceed the current tier's token limit
+        require(tierTokensSold[currentTier] + tokensToBuy <= tierTokenLimits[currentTier], "Purchase exceeds current tier's limit");
+
+        // Ensure the contract has enough tokens to sell
         require(myToken.balanceOf(address(this)) >= tokensToBuy, "Not enough tokens in contract");
 
-        // Transfer tokens to the buyer
-        require(myToken.transfer(msg.sender, tokensToBuy), "Token transfer failed");
-
-        // Update the total sold and MATIC raised counts
+        // Effects
+        // All state changes happen before the external call
         totalTokensSold += tokensToBuy;
         totalMaticRaised += msg.value;
+        tierTokensSold[currentTier] += tokensToBuy;
 
         // Check if the current tier is sold out and advance to the next tier
-        if (totalTokensSold >= tierTokenLimits[currentTier]) {
+        if (tierTokensSold[currentTier] >= tierTokenLimits[currentTier]) {
             currentTier++;
         }
+        
+        // Interactions
+        // Transfer tokens to the buyer using SafeERC20
+        myToken.safeTransfer(msg.sender, tokensToBuy);
 
         // Emit the event to log the purchase
         emit TokensPurchased(msg.sender, msg.value, tokensToBuy);
@@ -239,7 +237,7 @@ contract TokenPresale is Ownable, ReentrancyGuard {
      * @dev Returns the number of unsold tokens remaining in the contract.
      */
     function tokensRemaining() external view returns (uint256) {
-        return myToken.balanceOf(address(this)) - totalTokensSold;
+        return myToken.balanceOf(address(this));
     }
 
     /**

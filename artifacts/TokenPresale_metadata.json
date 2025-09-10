@@ -39,6 +39,17 @@
 				"type": "error"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					}
+				],
+				"name": "SafeERC20FailedOperation",
+				"type": "error"
+			},
+			{
 				"anonymous": false,
 				"inputs": [
 					{
@@ -129,12 +140,6 @@
 			{
 				"anonymous": false,
 				"inputs": [],
-				"name": "TiersProposed",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [],
 				"name": "TiersUpdated",
 				"type": "event"
 			},
@@ -183,30 +188,16 @@
 				"type": "event"
 			},
 			{
-				"inputs": [],
-				"name": "TIER_UPDATE_DELAY",
-				"outputs": [
+				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "",
+						"name": "minTokens",
 						"type": "uint256"
 					}
 				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
 				"name": "buyTokens",
 				"outputs": [],
 				"stateMutability": "payable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "commitTiers",
-				"outputs": [],
-				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -327,39 +318,21 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "uint256[]",
-						"name": "_proposedPrices",
-						"type": "uint256[]"
-					},
-					{
-						"internalType": "uint256[]",
-						"name": "_proposedLimits",
-						"type": "uint256[]"
-					}
-				],
-				"name": "proposeTiers",
+				"inputs": [],
+				"name": "renounceOwnership",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
-				"inputs": [],
-				"name": "proposedTiersTimestamp",
-				"outputs": [
+				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "",
+						"name": "_tier",
 						"type": "uint256"
 					}
 				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "renounceOwnership",
+				"name": "setCurrentTier",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -378,6 +351,24 @@
 					}
 				],
 				"name": "setMinMaxMaticBuy",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256[]",
+						"name": "_prices",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "_limits",
+						"type": "uint256[]"
+					}
+				],
+				"name": "setTiers",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -424,6 +415,25 @@
 					}
 				],
 				"name": "tierTokenLimits",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "tierTokensSold",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -530,15 +540,20 @@
 					{
 						"details": "The caller account is not authorized to perform an operation."
 					}
+				],
+				"SafeERC20FailedOperation(address)": [
+					{
+						"details": "An operation with an ERC-20 token failed."
+					}
 				]
 			},
 			"kind": "dev",
 			"methods": {
-				"buyTokens()": {
-					"details": "Allows a user to buy tokens with MATIC. This function is payable and can receive MATIC."
-				},
-				"commitTiers()": {
-					"details": "Allows the owner to commit the proposed tiers after the required time delay. The new tiers will then become active."
+				"buyTokens(uint256)": {
+					"details": "Allows a user to buy tokens with MATIC. This function is payable and can receive MATIC.",
+					"params": {
+						"minTokens": "The minimum number of tokens the buyer is willing to receive (slippage protection)."
+					}
 				},
 				"constructor": {
 					"details": "The constructor initializes the contract with the address of the token to be sold.",
@@ -547,7 +562,7 @@
 					}
 				},
 				"depositTokensForSale(uint256)": {
-					"details": "Allows the owner to deposit tokens into the presale contract. The owner must have already approved this contract to spend their tokens.",
+					"details": "Allows the owner to deposit tokens into the presale contract. The owner must have already approved this contract to spend their tokens. NOTE: Before calling this function, you MUST call the `approve` function on your ERC20 token contract to allow THIS contract to transfer the specified `amount` of tokens from your wallet.",
 					"params": {
 						"amount": "The number of tokens to deposit."
 					}
@@ -561,21 +576,27 @@
 				"owner()": {
 					"details": "Returns the address of the current owner."
 				},
-				"proposeTiers(uint256[],uint256[])": {
-					"details": "Allows the owner to propose a new set of prices and token limits for each tier. The changes will not take effect until the `commitTiers` function is called after a delay.",
-					"params": {
-						"_proposedLimits": "An array of token limits for each tier.",
-						"_proposedPrices": "An array of prices for each tier."
-					}
-				},
 				"renounceOwnership()": {
 					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+				},
+				"setCurrentTier(uint256)": {
+					"details": "Allows the owner to manually set the current active presale tier.",
+					"params": {
+						"_tier": "The new tier number."
+					}
 				},
 				"setMinMaxMaticBuy(uint256,uint256)": {
 					"details": "Allows the owner to update the minimum and maximum MATIC a user can spend.",
 					"params": {
 						"_maxMaticBuy": "The new maximum MATIC buy amount.",
 						"_minMaticBuy": "The new minimum MATIC buy amount."
+					}
+				},
+				"setTiers(uint256[],uint256[])": {
+					"details": "Allows the owner to set new prices and token limits for each tier instantly. This function replaces the two-step propose/commit process to allow for immediate changes.",
+					"params": {
+						"_limits": "An array of token limits for each tier.",
+						"_prices": "An array of prices for each tier."
 					}
 				},
 				"startPresale()": {
@@ -630,6 +651,30 @@
 				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
 			]
 		},
+		"@openzeppelin/contracts/interfaces/IERC1363.sol": {
+			"keccak256": "0xd5ea07362ab630a6a3dee4285a74cf2377044ca2e4be472755ad64d7c5d4b69d",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://da5e832b40fc5c3145d3781e2e5fa60ac2052c9d08af7e300dc8ab80c4343100",
+				"dweb:/ipfs/QmTzf7N5ZUdh5raqtzbM11yexiUoLC9z3Ws632MCuycq1d"
+			]
+		},
+		"@openzeppelin/contracts/interfaces/IERC165.sol": {
+			"keccak256": "0x0afcb7e740d1537b252cb2676f600465ce6938398569f09ba1b9ca240dde2dfc",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1c299900ac4ec268d4570ecef0d697a3013cd11a6eb74e295ee3fbc945056037",
+				"dweb:/ipfs/Qmab9owJoxcA7vJT5XNayCMaUR1qxqj1NDzzisduwaJMcZ"
+			]
+		},
+		"@openzeppelin/contracts/interfaces/IERC20.sol": {
+			"keccak256": "0x1a6221315ce0307746c2c4827c125d821ee796c74a676787762f4778671d4f44",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1bb2332a7ee26dd0b0de9b7fe266749f54820c99ab6a3bcb6f7e6b751d47ee2d",
+				"dweb:/ipfs/QmcRWpaBeCYkhy68PR3B4AgD7asuQk7PwkWxrvJbZcikLF"
+			]
+		},
 		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
 			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
 			"license": "MIT",
@@ -646,6 +691,14 @@
 				"dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
 			]
 		},
+		"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": {
+			"keccak256": "0x982c5cb790ab941d1e04f807120a71709d4c313ba0bfc16006447ffbd27fbbd5",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8150ceb4ac947e8a442b2a9c017e01e880b2be2dd958f1fa9bc405f4c5a86508",
+				"dweb:/ipfs/QmbcBmFX66AY6Kbhnd5gx7zpkgqnUafo43XnmayAM7zVdB"
+			]
+		},
 		"@openzeppelin/contracts/utils/Context.sol": {
 			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
 			"license": "MIT",
@@ -654,12 +707,20 @@
 				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
 			]
 		},
-		"danpresale.sol": {
-			"keccak256": "0x1fb109709cedba028f6429bdd2f1eb969e8901e8ed6ccd2810f069abb1aec573",
+		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
+			"keccak256": "0x8891738ffe910f0cf2da09566928589bf5d63f4524dd734fd9cedbac3274dd5c",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://632391484abfad0a57f8ba85c4160548ef0d4c1d37fb01b371b47eaed7af7836",
-				"dweb:/ipfs/QmfV4aRa78BNwZKN7Ro3YCdwQxGCq4pmBTkPhrLUjC8PFj"
+				"bzz-raw://971f954442df5c2ef5b5ebf1eb245d7105d9fbacc7386ee5c796df1d45b21617",
+				"dweb:/ipfs/QmadRjHbkicwqwwh61raUEapaVEtaLMcYbQZWs9gUkgj3u"
+			]
+		},
+		"danpresale.sol": {
+			"keccak256": "0xc5f88e786f1bd766860769ecbad0c5731c2667ec0b6c5f9ed3abc114f0e586e9",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://688bf96cc19db2e1eb6e6488eb3e266e30e11fe05f9ff99a7b44539f0ae5151d",
+				"dweb:/ipfs/QmZ2VxcY66JncrH2Yr5X2f9FMYDr8T1UhAAZJKmonRZpxP"
 			]
 		}
 	},
