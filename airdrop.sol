@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title Airdrop
@@ -29,9 +28,6 @@ contract Airdrop is Ownable, ReentrancyGuard {
     // For example, a value of 20 would represent a 2% fee.
     uint256 public claimFeePercent;
 
-    // A flag to activate or deactivate the airdrop.
-    bool public isAirdropActive;
-
     // A mapping to track which addresses have already claimed their airdrop.
     mapping(address => bool) public claimed;
 
@@ -41,8 +37,15 @@ contract Airdrop is Ownable, ReentrancyGuard {
     // The total amount of tokens that have been distributed to claimants and referrers.
     uint256 public tokensDistributed;
 
-    // The Merkle root of the whitelist for valid referrers.
-    bytes32 public merkleRoot;
+    // The maximum number of referrals allowed for a single user.
+    uint256 public maxReferrals;
+
+    // A mapping to track the number of successful referrals for each user.
+    mapping(address => uint256) public referralCounts;
+
+    // The timestamps for when the airdrop can start and stop.
+    uint256 public startAirdropAt;
+    uint256 public stopAirdropAt;
 
     // Events to log important actions.
     event AirdropClaimed(address indexed claimant, address indexed referrer);
@@ -54,7 +57,8 @@ contract Airdrop is Ownable, ReentrancyGuard {
     event AirdropFeeUpdated(uint256 newFee);
     event AirdropFeePaid(address indexed claimant, address indexed recipient, uint256 feeAmount);
     event TotalAirdropSupplyUpdated(uint256 newSupply);
-    event MerkleRootUpdated(bytes32 newRoot);
+    event MaxReferralsUpdated(uint256 newMax);
+    event AirdropScheduleUpdated(uint256 startTimestamp, uint256 stopTimestamp);
 
     /**
      * @dev The constructor initializes the contract with the token address, airdrop amounts, and total supply.
@@ -63,15 +67,13 @@ contract Airdrop is Ownable, ReentrancyGuard {
      * @param _initialReferralBonusAmount The initial amount of tokens for each referral.
      * @param _initialClaimFeePercent The initial fee percentage (e.g., 20 for 2%).
      * @param _initialTotalAirdropSupply The initial total supply of tokens for the airdrop.
-     * @param _initialMerkleRoot The initial Merkle root for the referral whitelist.
      */
     constructor(
         address _tokenAddress,
         uint256 _initialMainAirdropAmount,
         uint256 _initialReferralBonusAmount,
         uint256 _initialClaimFeePercent,
-        uint256 _initialTotalAirdropSupply,
-        bytes32 _initialMerkleRoot
+        uint256 _initialTotalAirdropSupply
     ) Ownable(msg.sender) {
         require(_tokenAddress != address(0), "Token address cannot be zero");
         token = IERC20(_tokenAddress);
@@ -79,7 +81,7 @@ contract Airdrop is Ownable, ReentrancyGuard {
         referralBonusAmount = _initialReferralBonusAmount;
         claimFeePercent = _initialClaimFeePercent;
         totalAirdropSupply = _initialTotalAirdropSupply;
-        merkleRoot = _initialMerkleRoot;
+        maxReferrals = 500; // Default max referrals, can be changed by owner
     }
 
     /**
@@ -91,29 +93,15 @@ contract Airdrop is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Modifier to ensure the airdrop is currently active.
+     * @dev Allows the owner to schedule the start and end of the airdrop.
+     * @param _startTimestamp The timestamp for when the airdrop should start.
+     * @param _stopTimestamp The timestamp for when the airdrop should stop.
      */
-    modifier onlyActiveAirdrop() {
-        require(isAirdropActive, "Airdrop is not active");
-        _;
-    }
-
-    /**
-     * @dev Allows the owner to start the airdrop.
-     */
-    function startAirdrop() public onlyOwner {
-        require(!isAirdropActive, "Airdrop is already active");
-        isAirdropActive = true;
-        emit AirdropStarted();
-    }
-
-    /**
-     * @dev Allows the owner to stop the airdrop.
-     */
-    function stopAirdrop() public onlyOwner {
-        require(isAirdropActive, "Airdrop is already stopped");
-        isAirdropActive = false;
-        emit AirdropStopped();
+    function scheduleAirdrop(uint256 _startTimestamp, uint256 _stopTimestamp) public onlyOwner {
+        require(_stopTimestamp > _startTimestamp, "Stop timestamp must be after start timestamp");
+        startAirdropAt = _startTimestamp;
+        stopAirdropAt = _stopTimestamp;
+        emit AirdropScheduleUpdated(startAirdropAt, stopAirdropAt);
     }
 
     /**
@@ -156,46 +144,58 @@ contract Airdrop is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Allows the owner to set the Merkle root.
-     * This is used to prove that a referrer is on the pre-approved whitelist.
-     * @param _newRoot The new Merkle root.
+     * @dev Allows the owner to set the maximum number of referrals per user.
+     * @param _newMax The new maximum number of referrals.
      */
-    function setMerkleRoot(bytes32 _newRoot) public onlyOwner {
-        merkleRoot = _newRoot;
-        emit MerkleRootUpdated(_newRoot);
+    function setMaxReferrals(uint256 _newMax) public onlyOwner {
+        maxReferrals = _newMax;
+        emit MaxReferralsUpdated(_newMax);
+    }
+
+    /**
+     * @dev A function for a user to claim their airdrop without a referral.
+     * It calls the main claim function with a zero address.
+     */
+    function claimAirdrop() public {
+        claimAirdrop(address(0));
     }
 
     /**
      * @dev A function for a user to claim their airdrop.
      * This function also handles the referral bonus and a configurable fee.
      * @param _referrer The address of the referrer. Use address(0) if there is no referrer.
-     * @param _merkleProof The Merkle proof to prove the referrer is on the whitelist.
      */
-    function claimAirdrop(address _referrer, bytes32[] calldata _merkleProof) public onlyActiveAirdrop nonReentrant {
+    function claimAirdrop(address _referrer) public nonReentrant {
         // Checks
         require(!claimed[msg.sender], "You have already claimed your airdrop");
+        require(block.timestamp >= startAirdropAt, "Airdrop has not started yet");
+        require(block.timestamp < stopAirdropAt, "Airdrop has already ended");
         
         // Effects
         claimed[msg.sender] = true;
 
         // Interactions
         uint256 feeAmount = Math.mulDiv(mainAirdropAmount, claimFeePercent, 100);
+        require(feeAmount <= mainAirdropAmount, "Invalid fee amount or airdrop amount");
         uint256 finalAirdropAmount = mainAirdropAmount - feeAmount;
-
+        
         uint256 tokensToDistribute = finalAirdropAmount;
 
-        // Handle referral bonus only if a valid referrer is provided and verified via Merkle proof.
+        // Handle referral bonus if a valid referrer is provided.
         if (_referrer != address(0)) {
             require(_referrer != msg.sender, "Cannot self-refer");
             require(_referrer != address(this), "Invalid referrer");
             
-            // Generate the leaf node for the Merkle proof.
-            bytes32 leaf = keccak256(abi.encodePacked(_referrer));
+            // Requires the referrer to have already claimed their own airdrop to be eligible for a bonus.
+            require(claimed[_referrer], "Referrer has not yet claimed");
             
-            // Verify that the referrer's address is on the pre-approved whitelist.
-            require(MerkleProof.verify(_merkleProof, merkleRoot, leaf), "Invalid Merkle proof");
+            // Requires the referrer to be within their referral limit.
+            require(referralCounts[_referrer] < maxReferrals, "Referrer has reached their referral limit");
 
             tokensToDistribute += referralBonusAmount;
+            
+            // Increment the referrer's count.
+            referralCounts[_referrer]++;
         }
 
         require(tokensDistributed + tokensToDistribute <= totalAirdropSupply, "Total airdrop supply exhausted");

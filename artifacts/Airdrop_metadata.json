@@ -31,11 +31,6 @@
 						"internalType": "uint256",
 						"name": "_initialTotalAirdropSupply",
 						"type": "uint256"
-					},
-					{
-						"internalType": "bytes32",
-						"name": "_initialMerkleRoot",
-						"type": "bytes32"
 					}
 				],
 				"stateMutability": "nonpayable",
@@ -138,6 +133,25 @@
 			},
 			{
 				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "startTimestamp",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "stopTimestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "AirdropScheduleUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
 				"inputs": [],
 				"name": "AirdropStarted",
 				"type": "event"
@@ -166,12 +180,12 @@
 				"inputs": [
 					{
 						"indexed": false,
-						"internalType": "bytes32",
-						"name": "newRoot",
-						"type": "bytes32"
+						"internalType": "uint256",
+						"name": "newMax",
+						"type": "uint256"
 					}
 				],
-				"name": "MerkleRootUpdated",
+				"name": "MaxReferralsUpdated",
 				"type": "event"
 			},
 			{
@@ -239,16 +253,18 @@
 				"type": "event"
 			},
 			{
+				"inputs": [],
+				"name": "claimAirdrop",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "address",
 						"name": "_referrer",
 						"type": "address"
-					},
-					{
-						"internalType": "bytes32[]",
-						"name": "_merkleProof",
-						"type": "bytes32[]"
 					}
 				],
 				"name": "claimAirdrop",
@@ -290,19 +306,6 @@
 			},
 			{
 				"inputs": [],
-				"name": "isAirdropActive",
-				"outputs": [
-					{
-						"internalType": "bool",
-						"name": "",
-						"type": "bool"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
 				"name": "mainAirdropAmount",
 				"outputs": [
 					{
@@ -316,12 +319,12 @@
 			},
 			{
 				"inputs": [],
-				"name": "merkleRoot",
+				"name": "maxReferrals",
 				"outputs": [
 					{
-						"internalType": "bytes32",
+						"internalType": "uint256",
 						"name": "",
-						"type": "bytes32"
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -354,8 +357,45 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "referralCounts",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "renounceOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_startTimestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_stopTimestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "scheduleAirdrop",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -389,12 +429,12 @@
 			{
 				"inputs": [
 					{
-						"internalType": "bytes32",
-						"name": "_newRoot",
-						"type": "bytes32"
+						"internalType": "uint256",
+						"name": "_newMax",
+						"type": "uint256"
 					}
 				],
-				"name": "setMerkleRoot",
+				"name": "setMaxReferrals",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -427,16 +467,28 @@
 			},
 			{
 				"inputs": [],
-				"name": "startAirdrop",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"name": "startAirdropAt",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "stopAirdrop",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"name": "stopAirdropAt",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -535,10 +587,12 @@
 			},
 			"kind": "dev",
 			"methods": {
-				"claimAirdrop(address,bytes32[])": {
+				"claimAirdrop()": {
+					"details": "A function for a user to claim their airdrop without a referral. It calls the main claim function with a zero address."
+				},
+				"claimAirdrop(address)": {
 					"details": "A function for a user to claim their airdrop. This function also handles the referral bonus and a configurable fee.",
 					"params": {
-						"_merkleProof": "The Merkle proof to prove the referrer is on the whitelist.",
 						"_referrer": "The address of the referrer. Use address(0) if there is no referrer."
 					}
 				},
@@ -547,7 +601,6 @@
 					"params": {
 						"_initialClaimFeePercent": "The initial fee percentage (e.g., 20 for 2%).",
 						"_initialMainAirdropAmount": "The initial amount of tokens for each participant.",
-						"_initialMerkleRoot": "The initial Merkle root for the referral whitelist.",
 						"_initialReferralBonusAmount": "The initial amount of tokens for each referral.",
 						"_initialTotalAirdropSupply": "The initial total supply of tokens for the airdrop.",
 						"_tokenAddress": "The address of the ERC20 token to be airdropped."
@@ -558,6 +611,13 @@
 				},
 				"renounceOwnership()": {
 					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+				},
+				"scheduleAirdrop(uint256,uint256)": {
+					"details": "Allows the owner to schedule the start and end of the airdrop.",
+					"params": {
+						"_startTimestamp": "The timestamp for when the airdrop should start.",
+						"_stopTimestamp": "The timestamp for when the airdrop should stop."
+					}
 				},
 				"setClaimFeePercent(uint256)": {
 					"details": "Allows the owner to set the airdrop fee percentage.",
@@ -571,10 +631,10 @@
 						"_newAmount": "The new amount for the main airdrop."
 					}
 				},
-				"setMerkleRoot(bytes32)": {
-					"details": "Allows the owner to set the Merkle root. This is used to prove that a referrer is on the pre-approved whitelist.",
+				"setMaxReferrals(uint256)": {
+					"details": "Allows the owner to set the maximum number of referrals per user.",
 					"params": {
-						"_newRoot": "The new Merkle root."
+						"_newMax": "The new maximum number of referrals."
 					}
 				},
 				"setReferralBonusAmount(uint256)": {
@@ -588,12 +648,6 @@
 					"params": {
 						"_newSupply": "The new total airdrop supply."
 					}
-				},
-				"startAirdrop()": {
-					"details": "Allows the owner to start the airdrop."
-				},
-				"stopAirdrop()": {
-					"details": "Allows the owner to stop the airdrop."
 				},
 				"transferOwnership(address)": {
 					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
@@ -702,22 +756,6 @@
 				"dweb:/ipfs/QmZiKwtKU1SBX4RGfQtY7PZfiapbbu6SZ9vizGQD9UHjRA"
 			]
 		},
-		"@openzeppelin/contracts/utils/cryptography/Hashes.sol": {
-			"keccak256": "0x8cbd338f083224b4b6f0ff42cbda641a0a6c31ffcdca197452b97fe4d0918269",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://f517dec5ba0c6491395acbf7f1d621f4e89e8f218bf5303c867b1c5ad70c6b11",
-				"dweb:/ipfs/QmWmXHRLEw8W6ckth7NyYTU88YfvuS7xSsfae5ksL8qNUe"
-			]
-		},
-		"@openzeppelin/contracts/utils/cryptography/MerkleProof.sol": {
-			"keccak256": "0x36a0c409c437a753cac9b92b75f93b0fbe92803bf2c8ff1517e54b247f166134",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://0f91ba472de411aa557cdbf6560c40750d87bd11c9060bc04d2ba7119af9d5a6",
-				"dweb:/ipfs/QmQjtYo2i7dDvzCEzZ67bDoNSG4RrwMoxPWuqFmX5Xzpuw"
-			]
-		},
 		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
 			"keccak256": "0x8891738ffe910f0cf2da09566928589bf5d63f4524dd734fd9cedbac3274dd5c",
 			"license": "MIT",
@@ -743,11 +781,11 @@
 			]
 		},
 		"airdrop.sol": {
-			"keccak256": "0x1caa600cd9a978ae5665141cb4689aab949af32841c4409f7d7db4adce505310",
+			"keccak256": "0x31571d0ea5e777d6fe39a15e54989def384aa1ec9b7d836909294d3376d6ba45",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://5124f17c154bc8044dfe7f245d17f02a109914088a5e9733e8de4db7b51c6d7f",
-				"dweb:/ipfs/QmQoowwRPJmFzGGHD1AE9q8kSoVymRKjQZUSgbJwFeGnVW"
+				"bzz-raw://0bd298a59ba9767fb9f13dbb6785306ef90bc349c66694b8dbe8d70922d2d936",
+				"dweb:/ipfs/QmZtZb1Gyak5zgg6vQpGRezDscx9aYQXW6KgXWSAJxHESa"
 			]
 		}
 	},
